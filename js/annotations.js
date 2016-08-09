@@ -579,8 +579,8 @@
 				linkType = (linkedTo instanceof H.Point) ? 'point' : (linkedTo instanceof H.Series) ? 'series' : null;
 
 				if (linkType === 'point') {
-					options.x = linkedTo.plotX + chart.plotLeft;
-					options.y = linkedTo.plotY + chart.plotTop;
+					options.x = xAxis.toPixels(linkedTo.x);
+					options.y = yAxis.toPixels(linkedTo.y);
 					series = linkedTo.series;
 				} else if (linkType === 'series') {
 					series = linkedTo;
@@ -600,6 +600,12 @@
 			// what is minPointOffset? Doesn't work in 4.0+
 			x = (defined(options.xValue) ? xAxis.toPixels(options.xValue /* + xAxis.minPointOffset */) : options.x);
 			y = defined(options.yValue) ? yAxis.toPixels(options.yValue) : options.y;
+
+			if (chart.inverted) {
+				var temp_x = x;
+				x = y;
+				y = temp_x;
+			}
 
 			if (isNaN(x) || isNaN(y) || !isNumber(x) || !isNumber(y)) {
 				return;
@@ -841,10 +847,17 @@
 						return;
 					}
 					var note = chart.activeAnnotation;
-							
-					var x = note.options.allowDragX ? event.clientX - note.startX + note.group.translateX : note.group.translateX,
-						y = note.options.allowDragY ? event.clientY - note.startY + note.group.translateY : note.group.translateY;
-				
+
+					var allow_axis_x_drag = note.options.allowDragX,
+						allow_axis_y_drag = note.options.allowDragY;
+					if (chart.inverted) {
+						var temp_allow = allow_axis_x_drag;
+						allow_axis_x_drag = allow_axis_y_drag;
+						allow_axis_y_drag = temp_allow;
+					}
+					var x = allow_axis_x_drag ? event.clientX - note.startX + note.group.translateX : note.group.translateX,
+						y = allow_axis_y_drag ? event.clientY - note.startY + note.group.translateY : note.group.translateY;
+
 					note.transX = x;
 					note.transY = y;
 					note.group.attr({
@@ -889,9 +902,17 @@
 						allowDragY = options.allowDragY,
 						xAxis = note.chart.xAxis[note.options.xAxis],
 						yAxis = note.chart.yAxis[note.options.yAxis],
-						newX = xAxis.toValue(x),
-						newY = yAxis.toValue(y);
-					
+						newX,
+						newY;
+
+					if (chart.inverted) {
+						var temp_x = x;
+						x = y;
+						y = temp_x;
+					}
+
+					newX = xAxis.toValue(x);
+					newY = yAxis.toValue(y);
 					if (x !== 0 || y !== 0) {
 						if (allowDragX && allowDragY) {
 							note.update({
