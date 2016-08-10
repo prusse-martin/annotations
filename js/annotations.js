@@ -602,9 +602,9 @@
 			y = defined(options.yValue) ? yAxis.toPixels(options.yValue) : options.y;
 
 			if (chart.inverted) {
-				var temp_x = x;
+				var tempX = x;
 				x = y;
-				y = temp_x;
+				y = tempX;
 			}
 
 			if (isNaN(x) || isNaN(y) || !isNumber(x) || !isNumber(y)) {
@@ -846,20 +846,24 @@
 					if (!chart.isInsidePlot(clickX - chart.plotLeft, clickY - chart.plotTop)) {
 						return;
 					}
-					var note = chart.activeAnnotation;
+					var note = chart.activeAnnotation,
+						x,
+						y;
 
-					var allow_axis_x_drag = note.options.allowDragX,
-						allow_axis_y_drag = note.options.allowDragY;
 					if (chart.inverted) {
-						var temp_allow = allow_axis_x_drag;
-						allow_axis_x_drag = allow_axis_y_drag;
-						allow_axis_y_drag = temp_allow;
+						// Screen X is Y axis and screen Y is X axis.
+						x = note.options.allowDragY ? event.clientX - note.startX + note.group.translateX : note.group.translateX;
+						y = note.options.allowDragX ? event.clientY - note.startY + note.group.translateY : note.group.translateY;
+						note.transX = y;
+						note.transY = x;
+					} else {
+						// Screen X is X axis and screen X is X axis.
+						x = note.options.allowDragX ? event.clientX - note.startX + note.group.translateX : note.group.translateX;
+						y = note.options.allowDragY ? event.clientY - note.startY + note.group.translateY : note.group.translateY;
+						note.transX = x;
+						note.transY = y;
 					}
-					var x = allow_axis_x_drag ? event.clientX - note.startX + note.group.translateX : note.group.translateX,
-						y = allow_axis_y_drag ? event.clientY - note.startY + note.group.translateY : note.group.translateY;
 
-					note.transX = x;
-					note.transY = y;
 					note.group.attr({
 						transform: 'translate(' + x + ',' + y + ')'
 					});
@@ -890,6 +894,7 @@
 				event.stopPropagation();
 				event.preventDefault();
 				if (chart.activeAnnotation && (chart.activeAnnotation.transX !== 0 || chart.activeAnnotation.transY !== 0)) {
+					// `transX` and `transY` are set taking in acount `chart.inverted`.
 					var note = chart.activeAnnotation,
 						x = note.transX,
 						y = note.transY,
@@ -902,17 +907,9 @@
 						allowDragY = options.allowDragY,
 						xAxis = note.chart.xAxis[note.options.xAxis],
 						yAxis = note.chart.yAxis[note.options.yAxis],
-						newX,
-						newY;
+						newX = xAxis.toValue(x),
+						newY = yAxis.toValue(y);
 
-					if (chart.inverted) {
-						var temp_x = x;
-						x = y;
-						y = temp_x;
-					}
-
-					newX = xAxis.toValue(x);
-					newY = yAxis.toValue(y);
 					if (x !== 0 || y !== 0) {
 						if (allowDragX && allowDragY) {
 							note.update({
